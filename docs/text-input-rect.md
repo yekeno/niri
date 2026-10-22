@@ -1,5 +1,7 @@
 # TextInputRect: caret IPC for input-method candidate windows
 
+**English** | [简体中文](text-input-rect.zh-CN.md)
+
 This fork adds one IPC request to niri: `TextInputRect`. It returns the
 focused text input's caret rectangle in output-logical coordinates, so an
 external input-method UI (such as
