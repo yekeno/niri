@@ -12,6 +12,28 @@
 
 <img width="1280" height="720" alt="niri with a few windows open" src="https://github.com/user-attachments/assets/dea5909e-1859-4aaa-9d88-d37f9663e00b" />
 
+## yekeno fork: IME caret IPC for Chinese input
+
+This fork adds a `TextInputRect` IPC request on top of upstream niri
+(v26.04-192-g4263c9a1). It reports the focused text input's caret rectangle
+in output-logical coordinates, so an external fcitx5/Rime candidate window
+can follow the caret on Wayland.
+
+```text
+→ "TextInputRect"
+← {"Ok":{"TextInputRect":{"x":812,"y":244,"width":2,"height":18}}}
+```
+
+The feature is used by **[rime-popup](https://github.com/yekeno/rime-popup)**,
+a layer-shell daemon that draws numbered fcitx5 candidates under the caret.
+It also requires a small [smithay fork](https://github.com/yekeno/smithay/tree/niri-text-input-rect)
+that exposes the cursor rectangle; this repository's `[patch]` section points
+at it automatically.
+
+- Full design, data flow, build and usage: [`docs/text-input-rect.md`](docs/text-input-rect.md)
+- Companion project: https://github.com/yekeno/rime-popup
+- Tested on Ubuntu 22.04.5 LTS, Wayland, fcitx5 5.0.14 with fcitx5-rime
+
 ## About
 
 Windows are arranged in columns on an infinite strip going to the right.

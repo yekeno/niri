@@ -81,6 +81,13 @@ pub enum Request {
     FocusedOutput,
     /// Request information about the focused window.
     FocusedWindow,
+    /// Request the cursor rectangle of the focused text input.
+    ///
+    /// This is the caret position reported by the client over
+    /// `zwp_text_input_v3.set_cursor_rectangle`, converted to output-logical
+    /// coordinates by adding the focused window's position. Returns `None`
+    /// when no text input has reported a rectangle yet.
+    TextInputRect,
     /// Request picking a window and get its information.
     PickWindow,
     /// Request picking a color from the screen.
@@ -155,6 +162,8 @@ pub enum Response {
     FocusedOutput(Option<Output>),
     /// Information about the focused window.
     FocusedWindow(Option<Window>),
+    /// Cursor rectangle of the focused text input, in output-logical coordinates.
+    TextInputRect(Option<TextInputRect>),
     /// Information about the picked window.
     PickedWindow(Option<Window>),
     /// Information about the picked color.
@@ -1513,6 +1522,20 @@ pub enum LayerSurfaceKeyboardInteractivity {
     Exclusive,
     /// Surface receives keyboard focus on demand, e.g. when clicked.
     OnDemand,
+}
+
+/// Cursor rectangle of the focused text input.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "json-schema", derive(schemars::JsonSchema))]
+pub struct TextInputRect {
+    /// X coordinate in output-logical pixels.
+    pub x: i32,
+    /// Y coordinate in output-logical pixels.
+    pub y: i32,
+    /// Caret width in logical pixels.
+    pub width: i32,
+    /// Caret height in logical pixels.
+    pub height: i32,
 }
 
 /// A layer-shell surface.

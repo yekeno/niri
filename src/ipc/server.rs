@@ -28,7 +28,9 @@ use smithay::reexports::calloop::generic::Generic;
 use smithay::reexports::calloop::{Interest, LoopHandle, Mode, PostAction};
 use smithay::reexports::rustix::fs::unlink;
 use smithay::utils::SERIAL_COUNTER;
+use smithay::wayland::input_method::InputMethodSeat;
 use smithay::wayland::shell::wlr_layer::{KeyboardInteractivity, Layer};
+use smithay::wayland::text_input::TextInputSeat;
 
 use crate::backend::IpcOutputMap;
 use crate::handlers::image_copy_capture;
@@ -269,6 +271,38 @@ async fn handle_client(ctx: ClientCtx, stream: Async<'static, UnixStream>) -> an
     }
 }
 
+/// Convert the focused text input's cursor rectangle to output-logical
+/// coordinates.
+///
+/// Clients report the rectangle in their surface's local coordinates, so the
+/// window's position on its output is added on top. The window position comes
+/// from the same render-position data used to draw the window, which keeps
+/// this correct for tiled, floating, and scrolling layouts.
+fn focused_text_input_rect(state: &State) -> Option<niri_ipc::TextInputRect> {
+    let seat = &state.niri.seat;
+    let surface = seat.text_input().focus()?;
+    let rect = seat.input_method().text_input_rectangle();
+    if rect.size.w <= 0 || rect.size.h <= 0 {
+        return None;
+    }
+
+    let (window, _) = state.niri.layout.find_window_and_output(&surface)?;
+    let window_id = window.id();
+
+    let origin = state.niri.layout.workspaces().find_map(|(_, _, ws)| {
+        ws.tiles_with_render_positions()
+            .find(|(tile, _, _)| tile.window().id() == window_id)
+            .map(|(tile, pos, _)| pos + tile.buf_loc().to_f64())
+    })?;
+
+    Some(niri_ipc::TextInputRect {
+        x: (origin.x + f64::from(rect.loc.x)).round() as i32,
+        y: (origin.y + f64::from(rect.loc.y)).round() as i32,
+        width: rect.size.w,
+        height: rect.size.h,
+    })
+}
+
 async fn process(ctx: &ClientCtx, request: Request) -> Reply {
     let response = match request {
         Request::ReturnError => return Err(String::from("example compositor error")),
@@ -340,6 +374,15 @@ async fn process(ctx: &ClientCtx, request: Request) -> Reply {
             let windows = &state.windows.windows;
             let window = windows.values().find(|win| win.is_focused).cloned();
             Response::FocusedWindow(window)
+        }
+        Request::TextInputRect => {
+            let (tx, rx) = async_channel::bounded(1);
+            ctx.event_loop.insert_idle(move |state| {
+                let _ = tx.send_blocking(focused_text_input_rect(state));
+            });
+            let result = rx.recv().await;
+            let rect = result.map_err(|_| String::from("error getting text input rect"))?;
+            Response::TextInputRect(rect)
         }
         Request::PickWindow => {
             let (tx, rx) = async_channel::bounded(1);

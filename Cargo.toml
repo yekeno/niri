@@ -187,3 +187,11 @@ assets = [
     ["resources/niri.service", "/usr/lib/systemd/user/", "644"],
     ["resources/niri-shutdown.target", "/usr/lib/systemd/user/", "644"],
 ]
+
+# The TextInputRect IPC request needs the focused text input's cursor
+# rectangle, which stock smithay does not expose. This fork adds the getter
+# (commit d0905a9, branch niri-text-input-rect) on top of the revision niri
+# already pins. See docs/text-input-rect.md.
+[patch."https://github.com/Smithay/smithay.git"]
+smithay = { git = "https://github.com/yekeno/smithay.git", rev = "d0905a9286f46ea27f364e3d77092b6be0c604ee" }
+smithay-drm-extras = { git = "https://github.com/yekeno/smithay.git", rev = "d0905a9286f46ea27f364e3d77092b6be0c604ee" }
